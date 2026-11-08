@@ -76,9 +76,9 @@ if __name__ == "__main__":
     color = "star-white"
     storage = "512GB"
     store_name = "rosenstrasse"
-    # store_info = get_store_info(store_name)
-    # part_number = get_part_number(color, storage, store_info["storefront"])
-    # url = build_url(color, storage, store_name)
-    # data = make_request(url)
-    # availability = analyze_data(data, part_number)
-    act_on_availability(color, storage, store_name, "available")
+    store_info = get_store_info(store_name)
+    part_number = get_part_number(color, storage, store_info["storefront"])
+    url = build_url(color, storage, store_name)
+    data = make_request(url)
+    availability = analyze_data(data, part_number)
+    act_on_availability(color, storage, store_name, availability)
