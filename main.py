@@ -2,6 +2,7 @@ from urllib.request import Request, urlopen
 import json
 from url_builder import build_url, get_part_number, get_store_info
 from notifications import send_message
+from urllib.error import HTTPError, URLError
 
 PARAMS = {
     "stores": [
@@ -68,26 +69,29 @@ def make_request(url: str) -> bytes:
         data = response.read()
     return data
 
-def analyze_data(response_bytes: bytes, part_number: str) -> str:
-    data = json.loads(response_bytes)
-    availability = data['body']['stores'][0]['partsAvailability'][part_number]['pickupDisplay']
-    return availability
+def analyze_data(response_bytes: bytes, part_number: str) -> str | None:
+    try:
+        data = json.loads(response_bytes)
+        availability = data['body']['stores'][0]['partsAvailability'][part_number]['pickupDisplay']
+        return availability
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
+        print(f"Failed to parse Apple's response: {e}")
 
-def act_on_availability(color: str, storage: str, store_name: str, availability: str) -> None:
+def act_on_availability(color: str, storage: str, store_name: str, availability: str | None) -> None:
     store_str = get_printable_store_name(store_name)
     color_str = get_printable_color(color)
     if availability == "available":
         message = f'Duo in {color_str} with {storage} is available for pickup at Apple {store_str} store!'
         send_message(message)
 
-def get_printable_store_name(store: str):
+def get_printable_store_name(store: str) -> str:
     stores = {
         "rosenstrasse": "Rosenstraße",
         "oez": "OEZ"
     }
     return stores[store]
 
-def get_printable_color(color: str):
+def get_printable_color(color: str) -> str:
     colors = {
         "star-white": "Star White",
         "night-sky": "Night Sky"
@@ -116,9 +120,14 @@ def get_all_combinations(data: dict) -> list[dict]:
 
 def main():
     for combination in get_all_combinations(OF_INTEREST):
-        data = make_request(combination["url"])
-        availability = analyze_data(data, combination["part_number"])
-        act_on_availability(combination["color"], combination["storage"], combination["store"], availability)
+        try:
+            data = make_request(combination["url"])
+            availability = analyze_data(data, combination["part_number"])
+            act_on_availability(combination["color"], combination["storage"], combination["store"], availability)
+        except HTTPError as e:
+            print(f"HTTP error {e.code} for {combination['url']}")
+        except URLError as e:
+            print(f"URL error ({e.reason}) for {combination['url']}")
 
 if __name__ == "__main__":
     main()
