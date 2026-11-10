@@ -64,15 +64,15 @@ def act_on_availability(color: str, storage: str, store_name: str, availability:
         send_message(message)
 
 
-def get_all_combinations() -> list[str]:
+def get_all_combinations(data: dict) -> list[str]:
     urls = []
-    for store in PARAMS["stores"]:
-        for color in PARAMS["colors"]:
-            for storage in PARAMS["storage"]:
+    for store in data["stores"]:
+        for color in data["colors"]:
+            for storage in data["storage"]:
                 urls.append(build_url(color, storage, store))
     return urls
 
-if __name__ == "__main__":
+def main():
     color = "star-white"
     storage = "512GB"
     store_name = "rosenstrasse"
@@ -82,3 +82,6 @@ if __name__ == "__main__":
     data = make_request(url)
     availability = analyze_data(data, part_number)
     act_on_availability(color, storage, store_name, availability)
+
+if __name__ == "__main__":
+    main()
