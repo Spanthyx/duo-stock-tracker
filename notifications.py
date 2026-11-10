@@ -3,9 +3,9 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 
-def send_message(message: str) -> None:
-    load_dotenv()
+load_dotenv()
 
+def send_message(message: str) -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
 

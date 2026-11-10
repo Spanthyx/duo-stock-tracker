@@ -41,6 +41,23 @@ PARAMS = {
     ]
 }
 
+OF_INTEREST = {
+    "stores": [
+        "rosenstrasse",
+        "oez"
+    ],
+
+    "colors": [
+        "night-sky",
+        "star-white"
+    ],
+
+    "storage": [
+        "256GB",
+        "512GB"
+    ]
+}
+
 
 def make_request(url: str) -> bytes:
     headers = {
@@ -53,35 +70,55 @@ def make_request(url: str) -> bytes:
 
 def analyze_data(response_bytes: bytes, part_number: str) -> str:
     data = json.loads(response_bytes)
-    # store = data['body']['stores'][0]['storeName']
     availability = data['body']['stores'][0]['partsAvailability'][part_number]['pickupDisplay']
     return availability
 
 def act_on_availability(color: str, storage: str, store_name: str, availability: str) -> None:
+    store_str = get_printable_store_name(store_name)
+    color_str = get_printable_color(color)
     if availability == "available":
-        color_name = 'Star White' if color == 'star-white' else 'Night Sky'
-        message = f'Duo in {color_name} with {storage} is available for pickup at Apple {store_name.capitalize()} store!'
+        message = f'Duo in {color_str} with {storage} is available for pickup at Apple {store_str} store!'
         send_message(message)
 
+def get_printable_store_name(store: str):
+    stores = {
+        "rosenstrasse": "Rosenstraße",
+        "oez": "OEZ"
+    }
+    return stores[store]
 
-def get_all_combinations(data: dict) -> list[str]:
-    urls = []
+def get_printable_color(color: str):
+    colors = {
+        "star-white": "Star White",
+        "night-sky": "Night Sky"
+    }
+
+    return colors[color]
+
+def get_all_combinations(data: dict) -> list[dict]:
+    output = []
     for store in data["stores"]:
         for color in data["colors"]:
             for storage in data["storage"]:
-                urls.append(build_url(color, storage, store))
-    return urls
+                current = {}
+
+                store_info = get_store_info(store)
+                part_number = get_part_number(color, storage, store_info["storefront"])
+                
+                current["url"] = build_url(color, storage, store)
+                current["part_number"] = part_number
+                current["color"] = color
+                current["storage"] = storage
+                current["store"] = store
+
+                output.append(current)
+    return output
 
 def main():
-    color = "star-white"
-    storage = "512GB"
-    store_name = "rosenstrasse"
-    store_info = get_store_info(store_name)
-    part_number = get_part_number(color, storage, store_info["storefront"])
-    url = build_url(color, storage, store_name)
-    data = make_request(url)
-    availability = analyze_data(data, part_number)
-    act_on_availability(color, storage, store_name, availability)
+    for combination in get_all_combinations(OF_INTEREST):
+        data = make_request(combination["url"])
+        availability = analyze_data(data, combination["part_number"])
+        act_on_availability(combination["color"], combination["storage"], combination["store"], availability)
 
 if __name__ == "__main__":
     main()
